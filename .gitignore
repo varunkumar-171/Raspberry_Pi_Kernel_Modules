@@ -1,6 +1,6 @@
 *.ko
-*.o
-*.symvers.*
-*.order.*
-*.mod.*
+*.o*
+*.symvers*
+*.order*
+*.mod*
 *.ko.*
