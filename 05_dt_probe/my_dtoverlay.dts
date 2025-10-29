@@ -1,0 +1,16 @@
+/dts-v1/;
+/plugin/;
+/ {
+	compatible = "brcm,bcm2835";
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			my_device {
+				compatible = "semtech,mydev";
+				status = "okay";
+				label = "Test";
+				value = <12>;
+			};
+		};
+	};
+};
