@@ -1,0 +1,21 @@
+/dts-v1/;
+/plugin/;
+/ {
+	compatible = "brcm,bcm2835";
+	fragment@0 {
+		target = <&i2c1>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			
+			my_ssd1306: my_ssd1306@3c {
+				compatible = "solomon,ssd1306";
+				reg = <0x3c>;
+				clock-frequency = <400000>;
+				status = "okay";
+			};
+		};
+	};
+};
+
+
