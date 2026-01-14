@@ -25,7 +25,7 @@ struct ssd1306_data {
     struct i2c_client *client;
     struct cdev cdev;
     dev_t dev_num;
-    unsigned char frame_buffer[1024];
+    unsigned char frame_buffer[1024 + 1];	// Command + frame
 };
 
 struct ssd1306_data *my_ssd1306_data;
@@ -116,15 +116,7 @@ int sendDataByte(unsigned char data){
  */
 int sendDataBlock(unsigned char *block, const unsigned int size){
 	int ret;
-    	unsigned char *buf = kmalloc(size * (sizeof(unsigned char)) + 1, GFP_KERNEL);
-	if(!buf){
-		pr_err("Unable to allocate memory!!\n");
-		return -ENOMEM;
-	}
-    	buf[0] = 0x40;
-    	memcpy(buf + 1, block, size);
-    	ret = i2c_master_send(my_ssd1306_data->client, buf, size + 1);
-    	kfree(buf);
+    	ret = i2c_master_send(my_ssd1306_data->client, block, size);
     	return ret;
 }
 
@@ -159,7 +151,7 @@ int ssd1306_controller_init(void)
 
     	pr_info("SSD1306 display initialized!!!\n");
 
-	memcpy(my_ssd1306_data->frame_buffer, LOGO_BITMAP, SCREEN_PIXELS);
+	memcpy(my_ssd1306_data->frame_buffer + 1, LOGO_BITMAP, SCREEN_PIXELS);	/* Command offset at [0]*/
     	sendDataBlock(my_ssd1306_data->frame_buffer, SCREEN_PIXELS);		/* Clear any garbage pixels */
 
 	return 0;
@@ -178,7 +170,7 @@ int ssd1306_set_cursor_at_start(void){
 
 int ssd1306_clear_screen(void){
 	ssd1306_set_cursor_at_start();
-	memset(my_ssd1306_data->frame_buffer, 0x00, BUFFER_SIZE);
+	memset(my_ssd1306_data->frame_buffer + 1, 0x00, BUFFER_SIZE);		/* Command offset at [0]*/
     	sendDataBlock(my_ssd1306_data->frame_buffer, SCREEN_PIXELS);
 
 	return 0;
@@ -198,7 +190,7 @@ static ssize_t i2c_client_write(struct file * file, const char * buffer, size_t 
 	}
 
 
-	bytes_not_written = copy_from_user(my_ssd1306_data->frame_buffer, buffer, bytes_to_write);
+	bytes_not_written = copy_from_user(my_ssd1306_data->frame_buffer + 1, buffer, bytes_to_write);		/* Overwrite only frame */
 
 	bytes_written = bytes_to_write - bytes_not_written;
 	if(bytes_not_written){
@@ -207,14 +199,14 @@ static ssize_t i2c_client_write(struct file * file, const char * buffer, size_t 
 
 	// *offset += bytes_written;
 
-	if(buffer[0] == 0x00){
+	if(my_ssd1306_data->frame_buffer[1] == 0x00){
 		// pr_info("Received command %x\n", my_ssd1306_data->frame_buffer[1]);
 		sendCommand(my_ssd1306_data->frame_buffer[1]);
 	}
-	else if(buffer[0] == 0x69){
+	else if(my_ssd1306_data->frame_buffer[1] == 0x69){
 		ssd1306_clear_screen();
 	}
-	else if(buffer[0] == 0x68){
+	else if(my_ssd1306_data->frame_buffer[1] == 0x68){
 		ssd1306_set_cursor_at_start();
 	}
 	else{
@@ -254,6 +246,7 @@ static int my_i2c_device_probe(struct i2c_client *i2c_client, const struct i2c_d
 	}
 
 	my_ssd1306_data->client = i2c_client;
+	my_ssd1306_data->frame_buffer[0] = 0x40;
 
 	ssd1306_controller_init();
 

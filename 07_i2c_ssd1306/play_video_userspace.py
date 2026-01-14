@@ -48,8 +48,7 @@ def ssd1306_clear_screen(device):
     device.flush()
 
 def process_frame(frame):
-    frame = cv2.flip(frame, 0)
-    # 1. Resize
+    frame = cv2.flip(frame, 1)
     resized_frame = cv2.resize(frame, (128, 64), interpolation=cv2.INTER_AREA)
 
     # 2. Convert to PIL for Dithering
@@ -60,8 +59,8 @@ def process_frame(frame):
     dithered_image = pil_image.convert('1')
 
     # 4. Convert back to array (0 or 1)
-    bw_frame = np.array(dithered_image, dtype=np.uint8) 
-    
+    bw_frame = np.array(dithered_image, dtype=np.uint8)
+
     # 5. SSD1306 Page Addressing bit-packing
     # This matches the physical hardware layout of the SSD1306
     buffer = bytearray(1024)
@@ -89,7 +88,7 @@ def main():
 
     try:
         with open(DEV_PATH, "wb") as oled:
-            ssd1306_clear_screen(oled)
+            # ssd1306_clear_screen(oled)
             print(f"Streaming {args.input} to {DEV_PATH}...")
             while cap.isOpened():
                 start_time = time.time()
